@@ -2,7 +2,7 @@
 
 ## untuk sub judul
 - Item daftar
-  ** Text tebal**
-  *Text Miring*
-  ('Untuk blok kode')
-  (ini untuk \n #kode blok anda \n)
+- **Text tebal**
+- *Text Miring*
+- ``` print("Halo Dunia") ```
+- (ini untuk \n #kode blok anda \n)
