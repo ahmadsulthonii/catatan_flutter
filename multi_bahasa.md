@@ -22,10 +22,10 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.19.0
-```
+
 flutter:
   generate: true
-
+```
 
 Lalu jalankan:
 
