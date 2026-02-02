@@ -3,14 +3,10 @@
 ## 1. Konsep Singkat
 
 Kita akan:
-
-Pakai flutter_localizations
-
-Pakai Intl
-
-Gunakan ARB file (.arb) untuk terjemahan
-
-Contoh bahasa: Indonesia (id) & Inggris (en)
+- Pakai flutter_localizations
+- Pakai Intl
+- Gunakan ARB file (.arb) untuk terjemahan
+- Contoh bahasa: Indonesia (id) & Inggris (en)
 
 ## 2. Tambahkan Dependency
 
