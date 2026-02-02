@@ -141,55 +141,65 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-class HomePage extends StatelessWidget {
-  final Function(Locale) onLanguageChange;
 
-  const HomePage({super.key, required this.onLanguageChange});
+class _HomePageState extends State<HomePage> {
+  bool isIndonesian = false;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.appTitle),
-      ),
+      appBar: AppBar(title: Text(t.appTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(t.welcome, style: const TextStyle(fontSize: 22)),
-            const SizedBox(height: 16),
-
-            Text(t.home),
-            Text(t.profile),
-            Text(t.settings),
-            Text(t.notification),
-            Text(t.about),
-            Text(t.help),
 
             const SizedBox(height: 24),
 
+            // 🔀 Switch Bahasa
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ElevatedButton(
-                  onPressed: () => onLanguageChange(const Locale('en')),
-                  child: const Text("English"),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () => onLanguageChange(const Locale('id')),
-                  child: const Text("Indonesia"),
+                Text(t.language),
+                Switch(
+                  value: isIndonesian,
+                  onChanged: (value) {
+                    setState(() {
+                      isIndonesian = value;
+                    });
+
+                    widget.onLanguageChange(
+                      value ? const Locale('id') : const Locale('en'),
+                    );
+                  },
                 ),
               ],
             ),
+
+            const Divider(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(t.home),
+                Text(t.profile),
+                Text(t.settings),
+                Text(t.notification),
+                Text(t.about),
+                Text(t.help),
+              ],
+            ),
+            const Divider(),
           ],
         ),
       ),
     );
   }
 }
+
 ```
 
 ## 6. Hasil
