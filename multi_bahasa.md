@@ -33,11 +33,13 @@ Lalu jalankan:
 flutter pub get
 ```
 ## 3. Struktur Folder
+```
 lib/
  ├─ main.dart
  └─ l10n/
      ├─ app_en.arb
      └─ app_id.arb
+```
 
 ## 4. File Terjemahan (20+ Kata)
 🇺🇸 lib/l10n/app_en.arb
@@ -96,9 +98,10 @@ lib/
 }
 ```
 
-``` dart
 
-5️⃣ main.dart
+## 5. main.dart
+
+``` dart
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
