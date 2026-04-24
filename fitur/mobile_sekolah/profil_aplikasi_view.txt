@@ -1,0 +1,289 @@
+import 'dart:io';
+
+import 'package:app_settings/app_settings.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:mobile_sekolah/core.dart';
+import 'package:mobile_sekolah/presentation/profil_aplikasi/profil_aplikasi_controller.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+class ProfilAplikasiView extends StatefulWidget {
+  const ProfilAplikasiView({super.key});
+
+  Widget build(context, ProfilAplikasiController controller) {
+    controller.view = this;
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        actions: const [],
+        iconTheme: IconThemeData(color: whiteColor),
+      ),
+      body: SingleChildScrollView(
+        child: Stack(
+          children: [
+            Center(
+              child: Column(
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                  Image.asset(
+                    "assets/icons/logo-sekolah.png",
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.fill,
+                  ),
+                  SizedBox(height: 15.h),
+                  Text(
+                    HomeService.currentSiswa!.dataSekolah.sekolah,
+                    style: FontM3.titleMediumEmphasized(),
+                  ),
+                  Text('App Version: ${controller.version}'),
+                  SizedBox(height: 32),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.r),
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x14004365),
+                            blurRadius: 20,
+                            offset: Offset(0, 5),
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      padding: EdgeInsets.all(16.r),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomText(
+                            text: 'Status Permission',
+                            fontSize: 14.sp,
+                            isBold: true,
+                          ),
+                          SizedBox(height: 8.h),
+                          Divider(thickness: 0.5),
+                          SizedBox(height: 8.h),
+
+                          ListTile(
+                            visualDensity: VisualDensity(vertical: -4),
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              radius: 15,
+                              backgroundColor: Colors.grey[200],
+                              child: Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: Image.asset(
+                                  'assets/icons_permission/camera.png',
+                                ),
+                              ),
+                            ),
+                            title: Text('Camera', style: FontM3.bodyMedium()),
+                            trailing: FutureBuilder(
+                              future: Permission.camera.status,
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return const Text('...');
+                                }
+
+                                final status = snapshot.data!;
+
+                                return Text(
+                                  status.isDenied
+                                      ? 'Tidak di izinkan'
+                                      : status.isPermanentlyDenied
+                                      ? 'Tidak di izinkan'
+                                      : status.isGranted
+                                      ? 'Di izinkan'
+                                      : 'Unknown',
+                                  style: FontM3.bodyMedium(),
+                                );
+                              },
+                            ),
+                          ),
+
+                          ListTile(
+                            visualDensity: VisualDensity(vertical: -4),
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              radius: 15,
+                              backgroundColor: Colors.grey[200],
+                              child: Padding(
+                                padding: const EdgeInsets.all(
+                                  4.0,
+                                ), // Semakin besar angka, gambar di dalam semakin kecil
+                                child: Image.asset(
+                                  'assets/icons_permission/notification.png',
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              'Notifikasi',
+                              style: FontM3.bodyMedium(),
+                            ),
+                            trailing: FutureBuilder<AuthorizationStatus>(
+                              future: NotificationService()
+                                  .getNotificationStatus(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return const Text('...');
+                                }
+
+                                final status = snapshot.data!;
+
+                                return Text(
+                                  status == AuthorizationStatus.authorized
+                                      ? 'Di izinkan'
+                                      : status ==
+                                            AuthorizationStatus.provisional
+                                      ? 'Di izinkan sementara'
+                                      : status == AuthorizationStatus.denied
+                                      ? 'Tidak di izinkan'
+                                      : 'Unknown',
+                                  style: FontM3.bodyMedium(),
+                                );
+                              },
+                            ),
+                          ),
+
+                          ListTile(
+                            visualDensity: VisualDensity(vertical: -4),
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              radius: 15,
+                              backgroundColor: Colors.grey[200],
+                              child: Padding(
+                                padding: const EdgeInsets.all(
+                                  4.0,
+                                ), // Semakin besar angka, gambar di dalam semakin kecil
+                                child: Image.asset(
+                                  'assets/icons_permission/picture.png',
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              'Photo Library',
+                              style: FontM3.bodyMedium(),
+                            ),
+                            trailing: FutureBuilder<PermissionStatus>(
+                              future: getGalleryStatus(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return const Text('...');
+                                }
+
+                                final status = snapshot.data!;
+
+                                String text = 'Unknown';
+
+                                if (status.isDenied) {
+                                  text = 'Belum di izinkan';
+                                } else if (status.isPermanentlyDenied) {
+                                  text = 'Tidak di izinkan permanen';
+                                } else if (status.isRestricted) {
+                                  text = 'Di batasi sistem';
+                                } else if (status.isLimited) {
+                                  text = 'Di izinkan terbatas';
+                                } else if (status.isGranted) {
+                                  text = 'Di izinkan';
+                                }
+
+                                return Text(text, style: FontM3.bodyMedium());
+                              },
+                            ),
+                            // trailing: FutureBuilder<PermissionStatus>(
+                            //   future: Permission.photos.status,
+                            //   builder: (context, snapshot) {
+                            //     if (!snapshot.hasData) {
+                            //       return const Text('...');
+                            //     }
+
+                            //     final status = snapshot.data!;
+
+                            //     String text = 'Unknown';
+
+                            //     if (status.isDenied) {
+                            //       text = 'Belum di izinkan';
+                            //     } else if (status.isPermanentlyDenied) {
+                            //       text = 'Tidak di izinkan permanen';
+                            //     } else if (status.isRestricted) {
+                            //       text = 'Di batasi sistem';
+                            //     } else if (status.isLimited) {
+                            //       text = 'Di izinkan terbatas';
+                            //     } else if (status.isGranted) {
+                            //       text = 'Di izinkan';
+                            //     }
+
+                            //     return Text(text, style: FontM3.bodyMedium());
+                            //   },
+                            // ),
+                          ),
+
+                          SizedBox(height: 12.h),
+                          Row(
+                            children: [
+                              Spacer(),
+                              ElevatedButton(
+                                onPressed: () {
+                                  AppSettings.openAppSettings();
+                                },
+                                child: const Text('Buka Pengaturan'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  State<ProfilAplikasiView> createState() => ProfilAplikasiController();
+}
+
+Future<PermissionStatus> getGalleryStatus() async {
+  if (Platform.isIOS) {
+    return await Permission.photos.status;
+  }
+
+  if (Platform.isAndroid) {
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    final sdkInt = androidInfo.version.sdkInt;
+
+    if (sdkInt >= 33) {
+      // Untuk Android 13+, karena menggunakan Photo Picker,
+      // kita anggap statusnya "Granted" (Tersedia) secara default
+      // karena sistem selalu mengizinkan akses via Picker.
+      return PermissionStatus.granted;
+    } else {
+      return await Permission.storage.status;
+    }
+  }
+
+  return PermissionStatus.denied;
+}
+
+// Future<PermissionStatus> getGalleryStatus() async {
+//   if (Platform.isIOS) {
+//     return await Permission.photos.status;
+//   }
+
+//   final androidInfo = await DeviceInfoPlugin().androidInfo;
+//   final sdkInt = androidInfo.version.sdkInt;
+
+//   if (sdkInt >= 33) {
+//     return await Permission.photos.status;
+//   } else {
+//     return await Permission.storage.status;
+//   }
+// }

@@ -129,14 +129,30 @@ class _ImagePickerBase64State extends State<ImagePickerBase64> {
           sumberImage = ImageSource.camera;
         }
 
+        // if (item == 'galeri') {
+        //   bool allowed = await requestGalleryPermission();
+
+        //   if (!allowed) {
+        //     final confirmed = await Get.to(
+        //       PermissionAccesView(judul: "Akses Galeri", needPhoto: true),
+        //     );
+
+        //     if (confirmed != true) return;
+        //   }
+
+        //   sumberImage = ImageSource.gallery;
+        // }
+
+        // Logika saat tombol Galeri ditekan
         if (item == 'galeri') {
           bool allowed = await requestGalleryPermission();
 
+          // Khusus Android 13+, requestGalleryPermission akan langsung return true,
+          // sehingga blok IF ini tidak akan dijalankan dan halaman PermissionView tidak muncul.
           if (!allowed) {
             final confirmed = await Get.to(
               PermissionAccesView(judul: "Akses Galeri", needPhoto: true),
             );
-
             if (confirmed != true) return;
           }
 
