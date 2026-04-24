@@ -1,0 +1,223 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mobile_sekolah/core.dart';
+import 'package:mobile_sekolah/presentation/permission_acces/permission_acces_view.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+class ImagePickerBase64 extends StatefulWidget {
+  final Function(String base64, String path) onChanged;
+  final Widget? icon;
+
+  const ImagePickerBase64({super.key, required this.onChanged, this.icon});
+
+  @override
+  State<ImagePickerBase64> createState() => _ImagePickerBase64State();
+}
+
+class _ImagePickerBase64State extends State<ImagePickerBase64> {
+  String? imagePath;
+
+  PermissionService permission = PermissionService();
+
+  /// compress + convert ke PNG
+  Future<File?> compressImage(File file) async {
+    try {
+      final dir = Directory.systemTemp;
+
+      final targetPath =
+          "${dir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.png";
+
+      final result = await FlutterImageCompress.compressAndGetFile(
+        file.absolute.path,
+        targetPath,
+        quality: 10,
+        minWidth: 300,
+        minHeight: 300,
+        format: CompressFormat.png,
+      );
+
+      if (result == null) return null;
+
+      return File(result.path);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> pickImage(ImageSource source) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+
+      /// ambil foto
+      final XFile? image = await picker.pickImage(
+        source: source,
+        imageQuality: 60,
+        maxWidth: 800,
+      );
+
+      if (image == null) return;
+
+      /// crop gambar
+      CroppedFile? croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Pangkas Foto',
+            toolbarColor: Colors.blue,
+            toolbarWidgetColor: Colors.white,
+          ),
+          IOSUiSettings(title: 'Pangkas Foto'),
+        ],
+      );
+
+      if (croppedFile == null) {
+        return;
+      }
+
+      File file = File(croppedFile.path);
+
+      /// compress + convert ke PNG
+      File? compressed = await compressImage(file);
+
+      if (compressed == null) {
+        return;
+      }
+
+      /// convert ke base64
+      final bytes = await compressed.readAsBytes();
+      final base64String = base64Encode(bytes);
+
+      String mimeType = "image/png";
+
+      setState(() {
+        imagePath = compressed.path;
+      });
+
+      /// kirim ke parent
+      widget.onChanged("data:$mimeType;base64,$base64String", compressed.path);
+    } catch (e) {
+      // log("PICK IMAGE ERROR: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      icon:
+          widget.icon ??
+          const Icon(Icons.add_photo_alternate, color: Color(0xffA6A6A6)),
+
+      onSelected: (String item) async {
+        ImageSource sumberImage = ImageSource.gallery;
+
+        if (item == 'camera') {
+          final status = await Permission.camera.request();
+
+          if (!status.isGranted) {
+            final confirmed = await Get.to(
+              PermissionAccesView(judul: "Ambil Foto Izin", needCamera: true),
+            );
+
+            if (confirmed != true) return;
+          }
+
+          sumberImage = ImageSource.camera;
+        }
+
+        if (item == 'galeri') {
+          bool allowed = await requestGalleryPermission();
+
+          if (!allowed) {
+            final confirmed = await Get.to(
+              PermissionAccesView(judul: "Akses Galeri", needPhoto: true),
+            );
+
+            if (confirmed != true) return;
+          }
+
+          sumberImage = ImageSource.gallery;
+        }
+
+        await pickImage(sumberImage);
+      },
+
+      itemBuilder: (context) {
+        return const [
+          PopupMenuItem<String>(value: 'camera', child: Text('Kamera')),
+          PopupMenuItem<String>(value: 'galeri', child: Text('Galeri')),
+        ];
+      },
+    );
+  }
+}
+
+Future<bool> requestGalleryPermission() async {
+  if (Platform.isIOS) {
+    // iOS TETAP butuh izin manual di Info.plist dan request permission
+    Permission statusPhotos = Permission.photos;
+    final status = await statusPhotos.request();
+
+    if (status.isGranted || status.isLimited) {
+      return true;
+    } else {
+      if (status.isPermanentlyDenied) openAppSettings();
+      return false;
+    }
+  } else if (Platform.isAndroid) {
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    final sdkInt = androidInfo.version.sdkInt;
+
+    if (sdkInt >= 33) {
+      // ANDROID 13+: PHOTO PICKER MODE
+      // Secara teknis tidak butuh request permission.
+      // Langsung kembalikan true agar fungsi pickImage() berjalan.
+      return true;
+    } else {
+      // ANDROID 12 KE BAWAH: Masih butuh STORAGE permission
+      final status = await Permission.storage.request();
+      if (status.isGranted) {
+        return true;
+      } else {
+        if (status.isPermanentlyDenied) openAppSettings();
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+// Future<bool> requestGalleryPermission() async {
+//   Permission permission;
+
+//   if (Platform.isIOS) {
+//     permission = Permission.photos;
+//   } else {
+//     final androidInfo = await DeviceInfoPlugin().androidInfo;
+//     final sdkInt = androidInfo.version.sdkInt;
+
+//     if (sdkInt >= 33) {
+//       // Android 13+
+//       permission = Permission.photos;
+//     } else {
+//       // Android 12 ke bawah (TERMASUK Android 9)
+//       permission = Permission.storage;
+//     }
+//   }
+
+//   final status = await permission.request();
+
+//   if (status.isGranted || status.isLimited) {
+//     return true;
+//   }
+
+//   if (status.isPermanentlyDenied) {
+//     openAppSettings();
+//   }
+
+//   return false;
+// }
